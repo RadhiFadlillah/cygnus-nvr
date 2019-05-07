@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Live Stream - Cygnus</title>
+    <title>Live Stream - Cygnus NVR</title>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,13 +42,15 @@
 
     <script type="module">
         import basePage from "./js/page/base.js";
+        import pageSetting from './js/page/setting.js';
         import cygnusDialog from "./js/component/dialog.js";
 
         var app = new Vue({
             el: '#app',
             mixins: [basePage],
             components: {
-                cygnusDialog
+                cygnusDialog,
+                pageSetting
             },
             data: {
                 activePage: "",
@@ -63,7 +65,7 @@
                 },{
                     title: "Setting",
                     icon: "fa-cog",
-                    page: "",
+                    page: "page-setting",
                 }]
             },
             methods: {
