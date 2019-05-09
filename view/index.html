@@ -42,6 +42,7 @@
 
     <script type="module">
         import basePage from "./js/page/base.js";
+        import pageLive from './js/page/live.js';
         import pageSetting from './js/page/setting.js';
         import cygnusDialog from "./js/component/dialog.js";
 
@@ -50,14 +51,15 @@
             mixins: [basePage],
             components: {
                 cygnusDialog,
+                pageLive,
                 pageSetting
             },
             data: {
-                activePage: "",
+                activePage: "page-live",
                 sidebarItems: [{
                     title: "Live stream",
                     icon: "fa-video",
-                    page: "",
+                    page: "page-live",
                 },{
                     title: "Storage",
                     icon: "fa-hdd",

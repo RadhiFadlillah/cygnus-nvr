@@ -58,9 +58,14 @@ func serveApp(db *bbolt.DB) {
 
 	router.GET("/", hdl.ServeIndexPage)
 	router.GET("/login", hdl.ServeLoginPage)
+	router.GET("/cam/:camID/live/playlist", hdl.ServeLivePlaylist)
+	router.GET("/cam/:camID/live/stream/:index", hdl.ServeLiveSegment)
 
 	router.POST("/api/login", hdl.APILogin)
 	router.POST("/api/logout", hdl.APILogout)
+
+	router.GET("/api/camera", hdl.APIGetCameraList)
+	router.POST("/api/camera", hdl.APISaveCamera)
 
 	router.GET("/api/user", hdl.APIGetUsers)
 	router.POST("/api/user", hdl.APIInsertUser)

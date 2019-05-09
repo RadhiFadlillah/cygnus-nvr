@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	nurl "net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -116,4 +118,78 @@ func (h *WebHandler) APILogout(w http.ResponseWriter, r *http.Request, ps httpro
 
 	h.SessionCache.Delete(sessionID.Value)
 	fmt.Fprint(w, 1)
+}
+
+// APIGetCameraList is handler for GET /api/camera
+func (h *WebHandler) APIGetCameraList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
+	// Read list of camera from database
+	cameras := make(map[string]string)
+	h.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("camera"))
+		if bucket == nil {
+			return nil
+		}
+
+		c := bucket.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			if v == nil {
+				camBucket := bucket.Bucket(k)
+				camName := camBucket.Get([]byte("name"))
+				cameras[string(k)] = string(camName)
+			}
+		}
+
+		return nil
+	})
+
+	// Encode to JSON
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(&cameras)
+	checkError(err)
+}
+
+// APISaveCamera is handler for POST /api/camera
+func (h *WebHandler) APISaveCamera(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
+	// Decode request
+	var camera Camera
+	err = json.NewDecoder(r.Body).Decode(&camera)
+	checkError(err)
+
+	// Make sure URL valid
+	camera.URL = strings.TrimSuffix(camera.URL, "/")
+	tmp, err := nurl.ParseRequestURI(camera.URL)
+	if err != nil || tmp.Scheme == "" || tmp.Hostname() == "" {
+		panic(fmt.Errorf("url is not valid"))
+	}
+
+	// Save camera to database
+	h.DB.Update(func(tx *bolt.Tx) error {
+		// Get camera bucket
+		cameraBucket, _ := tx.CreateBucketIfNotExists([]byte("camera"))
+
+		// Generate ID for new camera, and convert it to string
+		if camera.ID == "" {
+			id, _ := cameraBucket.NextSequence()
+			camera.ID = fmt.Sprintf("%d", id)
+		}
+
+		// Save the new camera
+		newCameraBucket, _ := cameraBucket.CreateBucketIfNotExists([]byte(camera.ID))
+		newCameraBucket.Put([]byte("url"), []byte(tmp.String()))
+		newCameraBucket.Put([]byte("name"), []byte(camera.Name))
+		newCameraBucket.Put([]byte("username"), []byte(camera.Username))
+		newCameraBucket.Put([]byte("password"), []byte(camera.Password))
+
+		return nil
+	})
+
+	fmt.Fprint(w, camera.ID)
 }
