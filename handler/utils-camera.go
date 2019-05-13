@@ -147,6 +147,7 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 
 	finalLength := len(strPlaylistContent)
 	w.Header().Set("Content-Length", strconv.Itoa(finalLength))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	_, err = w.Write([]byte(strPlaylistContent))
 	if err != nil {
@@ -197,6 +198,7 @@ func (h *WebHandler) proxyCameraLiveStream(cam Camera, index string, w http.Resp
 		}
 	}
 
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	_, err = io.Copy(w, resp.Body)
 	resp.Body.Close()
 	if err != nil {

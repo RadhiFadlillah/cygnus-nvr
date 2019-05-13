@@ -51,6 +51,7 @@ func (h *WebHandler) APILogin(w http.ResponseWriter, r *http.Request, ps httprou
 			Expires: time.Now().Add(expTime),
 		})
 
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprint(w, strSessionID)
 	}
@@ -117,6 +118,7 @@ func (h *WebHandler) APILogout(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	h.SessionCache.Delete(sessionID.Value)
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	fmt.Fprint(w, 1)
 }
 
@@ -147,6 +149,7 @@ func (h *WebHandler) APIGetCameraList(w http.ResponseWriter, r *http.Request, ps
 	})
 
 	// Encode to JSON
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&cameras)
 	checkError(err)
@@ -191,5 +194,34 @@ func (h *WebHandler) APISaveCamera(w http.ResponseWriter, r *http.Request, ps ht
 		return nil
 	})
 
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	fmt.Fprint(w, camera.ID)
+}
+
+// APIDeleteCamera is handler for DELETE /api/camera/:id
+func (h *WebHandler) APIDeleteCamera(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
+	// Decode request
+	camID := ps.ByName("id")
+
+	// Delete camera's session cache
+	h.CameraCache.Delete(camID)
+
+	// Delete camera in database
+	h.DB.Update(func(tx *bolt.Tx) error {
+		// Get camera bucket
+		cameraBucket := tx.Bucket([]byte("camera"))
+		if cameraBucket == nil {
+			return nil
+		}
+
+		cameraBucket.DeleteBucket([]byte(camID))
+		return nil
+	})
+
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	fmt.Fprint(w, 1)
 }

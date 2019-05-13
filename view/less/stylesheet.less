@@ -312,139 +312,62 @@ body {
 
     .video-container {
         padding: 16px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+        align-content: start;
+        grid-gap: 16px;
 
-        #live-viewer {
-            width: 100%;
-            height: 100%;
+        &::after {
+            display: block;
+            content: "";
+            height: 1px;
+            width: 1px;
+            grid-column: 1;
         }
-    }
-}
 
-#page-storage {
-    display: grid;
-    overflow: hidden;
-    grid-template-rows: 60px minmax(0, 1fr);
-    grid-template-columns: 150px minmax(0, 1fr);
-
-    .page-header {
-        grid-row: 1 / span 1;
-        grid-column: 1 / span 2;
-
-        a:first-child {
-            display: none;
-        }
-    }
-
-    .file-list {
-        overflow: auto;
-        width: 150px;
-        grid-row: 2 / span 1;
-        grid-column: 1 / span 1;
-        background-color: var(--contentBg);
-        border-right: 1px solid var(--border);
-
-        .file-group {
-            border-bottom: 1px solid var(--border);
-
-            .file-group-parent {
-                display: block;
-                padding: 8px 16px;
-                font-size: 1em;
-                font-weight: 600;
-                color: var(--color);
-
-                &::after {
-                    content: "-";
-                    margin-left: 8px;
-                    font-weight: 600;
-                }
-
-                &:hover {
-                    color: var(--mainDark);
-                }
-            }
-
-            .file-group-children {
-                display: flex;
-                flex-flow: column nowrap;
-
-                a {
-                    display: block;
-                    padding: 8px 16px;
-                    flex-shrink: 0;
-                    padding-left: 32px;
-                    font-size: .9em;
-                    color: var(--color);
-                    border-top: 1px solid var(--border);
-
-                    &:hover {
-                        color: var(--mainDark);
-                    }
-
-                    &.active {
-                        color: var(--mainDark);
-                        font-weight: 600;
-                    }
-                }
-            }
-
-            &:not(.expanded) {
-                .file-group-parent::after {
-                    content: "+"
-                }
-
-                .file-group-children {
-                    display: none;
-                }
-            }
-        }
-    }
-
-    .video-container {
-        display: flex;
-        flex-flow: column nowrap;
-        background-color: var(--bg);
-        padding: 16px;
-        z-index: 1;
-
-        #video-viewer {
-            flex: 1 0;
+        .cygnus-video-box {
             width: auto;
             height: auto;
-        }
-    }
 
-    .empty-message {
-        display: block;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 150px;
-        line-height: 24px;
-        text-align: center;
-        margin-top: calc(30px-12px);
-        margin-left: -75px;
-        color: var(--colorLink);
-        z-index: 1;
-    }
-
-    @media (max-width: 600px) {
-        grid-template-rows: auto minmax(0, 1fr);
-        grid-template-columns: minmax(0, 1fr);
-
-        .page-header {
-            grid-column: 1 / span 1;
-
-            a:first-child {
-                display: block;
+            .cygnus-video {
+                width: 100%;
+                max-width: 100%;
+                max-height: 400px;
             }
-        }
 
-        .file-list,
-        .video-container {
-            width: 100%;
-            grid-row: 2 / span 1;
-            grid-column: 1 / span 1;
+            .cygnus-video-menu {
+                display: flex;
+                flex-flow: row nowrap;
+                padding: 8px;
+                align-content: center;
+                justify-content: center;
+                background-color: var(--sidebarBg);
+
+                >*:not(:last-child) {
+                    margin-right: 8px;
+                }
+
+                p {
+                    flex: 1 0;
+                    font-size: 0.9em;
+                    font-weight: 600;
+                    text-align: left;
+                    color: var(--colorSidebar);
+                }
+
+                a {
+                    font-size: 0.9em;
+                    color: var(--colorLink);
+
+                    &:hover,
+                    &:focus {
+                        color: var(--mainLight);
+                    }
+                }
+            }
         }
     }
 }
@@ -604,7 +527,5 @@ body {
                 }
             }
         }
-
-        #setting-camera {}
     }
 }

@@ -5,12 +5,17 @@ var template = `
         <a href="#" title="Refresh storage" @click="loadCameras">
             <i class="fas fa-fw fa-sync-alt"></i>
         </a>
-        <a href="#" title="Add camera" @click="showDialogNewCamera">
+        <a href="#" title="Add camera" @click="showDialogInputCamera">
             <i class="fas fa-fw fa-plus-circle"></i>
         </a>
     </div>
     <div class="video-container">
-        <video-player v-for="(cam, idx) in cameras" :key=idx source="/cam/1/live/playlist">
+        <video-player v-for="(name, id) in cameras" 
+            :key="id" 
+            :name="name"
+            @edit="showDialogInputCamera(id, name)"
+            @delete="showDialogDeleteCamera(id, name)"
+            :url="'/cam/'+id+'/live/playlist'" >
         </video-player>
     </div>
     <div class="loading-overlay" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
@@ -44,7 +49,6 @@ export default {
                     return response.json();
                 })
                 .then(json => {
-                    console.log(json);
                     this.cameras = json;
                     this.loading = false;
                 })
@@ -55,17 +59,17 @@ export default {
                     })
                 });
         },
-        showDialogNewCamera() {
+        showDialogInputCamera(id, name) {
             this.showDialog({
-                title: "New Camera",
+                title: "Input Camera",
                 content: "Input new camera's data :",
                 fields: [{
-                    name: "url",
-                    label: "Domain URL",
-                    value: "",
-                }, {
                     name: "name",
                     label: "Camera's name",
+                    value: name || "",
+                }, {
+                    name: "url",
+                    label: "Domain URL",
                     value: "",
                 }, {
                     name: "username",
@@ -110,6 +114,8 @@ export default {
                         return;
                     }
 
+                    data.id = (id || "") + "";
+
                     this.dialog.loading = true;
                     fetch("/api/camera", {
                             method: "post",
@@ -125,6 +131,33 @@ export default {
                         .then(() => {
                             this.dialog.loading = false;
                             this.dialog.visible = false;
+                        })
+                        .catch(err => {
+                            this.dialog.loading = false;
+                            err.text().then(msg => {
+                                this.showErrorDialog(`${msg} (${err.status})`);
+                            })
+                        });
+                }
+            });
+        },
+        showDialogDeleteCamera(id, name) {
+            this.showDialog({
+                title: "Delete Camera",
+                content: `Are you sure you want to delete camera ${name} ?`,
+                mainText: "Yes",
+                secondText: "No",
+                mainClick: () => {
+                    this.dialog.loading = true;
+                    fetch(`/api/camera/${id}`, { method: "delete" })
+                        .then(response => {
+                            if (!response.ok) throw response;
+                            return response;
+                        })
+                        .then(() => {
+                            this.dialog.loading = false;
+                            this.dialog.visible = false;
+                            Vue.delete(this.cameras, id);
                         })
                         .catch(err => {
                             this.dialog.loading = false;

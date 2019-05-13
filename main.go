@@ -66,6 +66,7 @@ func serveApp(db *bbolt.DB) {
 
 	router.GET("/api/camera", hdl.APIGetCameraList)
 	router.POST("/api/camera", hdl.APISaveCamera)
+	router.DELETE("/api/camera/:id", hdl.APIDeleteCamera)
 
 	router.GET("/api/user", hdl.APIGetUsers)
 	router.POST("/api/user", hdl.APIInsertUser)
