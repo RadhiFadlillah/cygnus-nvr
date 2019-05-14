@@ -118,7 +118,6 @@ func (h *WebHandler) APILogout(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	h.SessionCache.Delete(sessionID.Value)
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	fmt.Fprint(w, 1)
 }
 
@@ -149,7 +148,6 @@ func (h *WebHandler) APIGetCameraList(w http.ResponseWriter, r *http.Request, ps
 	})
 
 	// Encode to JSON
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(&cameras)
 	checkError(err)
@@ -194,7 +192,6 @@ func (h *WebHandler) APISaveCamera(w http.ResponseWriter, r *http.Request, ps ht
 		return nil
 	})
 
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	fmt.Fprint(w, camera.ID)
 }
 
@@ -222,6 +219,5 @@ func (h *WebHandler) APIDeleteCamera(w http.ResponseWriter, r *http.Request, ps 
 		return nil
 	})
 
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	fmt.Fprint(w, 1)
 }
