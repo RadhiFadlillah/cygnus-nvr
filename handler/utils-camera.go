@@ -120,11 +120,17 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		if err.Error() == "session is not exist" || err.Error() == "session has been expired" {
+		errMsg, err2 := ioutil.ReadAll(resp.Body)
+		if err2 != nil {
+			return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
+		}
+
+		strErrMsg := strings.TrimSpace(string(errMsg))
+		if strErrMsg == "session is not exist" || strErrMsg == "session has been expired" {
 			h.CameraCache.Delete(cam.ID)
 		}
 
-		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
+		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, strErrMsg)
 	}
 
 	// Copy response header
@@ -185,20 +191,30 @@ func (h *WebHandler) proxyCameraLiveStream(cam Camera, index string, w http.Resp
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		if err.Error() == "session is not exist" || err.Error() == "session has been expired" {
+		errMsg, err2 := ioutil.ReadAll(resp.Body)
+		if err2 != nil {
+			return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
+		}
+
+		strErrMsg := strings.TrimSpace(string(errMsg))
+		if strErrMsg == "session is not exist" || strErrMsg == "session has been expired" {
 			h.CameraCache.Delete(cam.ID)
 		}
-		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
+
+		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, strErrMsg)
 	}
 
-	// Copy result to writer
+	// Copy all response headers
 	for key, vals := range resp.Header {
 		for _, val := range vals {
 			w.Header().Set(key, val)
 		}
 	}
 
+	// Make sure to not cahce this stream
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+
+	// Copy result to writer
 	_, err = io.Copy(w, resp.Body)
 	resp.Body.Close()
 	if err != nil {

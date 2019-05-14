@@ -192,6 +192,9 @@ func (h *WebHandler) APISaveCamera(w http.ResponseWriter, r *http.Request, ps ht
 		return nil
 	})
 
+	// Remove camera session cache
+	h.CameraCache.Delete(camera.ID)
+
 	fmt.Fprint(w, camera.ID)
 }
 
