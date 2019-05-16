@@ -1,4 +1,5 @@
 //go:generate go run assets-generator.go
+//go:generate go run secret-generator.go
 
 package main
 

@@ -2,3 +2,4 @@
 cygnus-nvr
 cygnus-nvr.db
 cygnus-nvr-dev
+handler/secret-prod.go
