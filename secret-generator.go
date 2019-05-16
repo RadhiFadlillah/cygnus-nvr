@@ -5,6 +5,8 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+	"log"
 	"os"
 )
 
@@ -13,11 +15,13 @@ const (
 )
 
 func main() {
+	fmt.Println("writing", secretPath)
+
 	// Create random 32-bit key
 	btKey := make([]byte, 32)
 	_, err := rand.Read(btKey)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	// Convert key to safe string
@@ -34,12 +38,12 @@ func main() {
 	// Save secret to file
 	dst, err := os.Create(secretPath)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer dst.Close()
 
 	_, err = dst.WriteString(content)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }
