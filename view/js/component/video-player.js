@@ -44,8 +44,13 @@ export default {
             preload: "auto",
             autoplay: true,
             muted: true,
+            aspectRatio: "4:3",
+            inactivityTimeout: 0,
             html5: {
-                hls: { overrideNative: true }
+                hls: {
+                    overrideNative: true,
+                    withCredentials: false,
+                }
             },
         });
     },
@@ -60,7 +65,8 @@ export default {
                 this.player.reset();
                 this.player.src({
                     type: 'application/x-mpegURL',
-                    src: this.url
+                    src: this.url,
+                    withCredentials: false,
                 });
             }
         }

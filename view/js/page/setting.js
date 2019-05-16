@@ -43,7 +43,7 @@ export default {
         loadSetting() {
             this.loading = true;
 
-            fetch("/api/setting")
+            fetch("/api/setting", { credentials: "include" })
                 .then(response => {
                     if (!response.ok) throw response;
                     return response.json();
@@ -100,6 +100,7 @@ export default {
                     fetch("/api/user", {
                             method: "post",
                             body: JSON.stringify(data),
+                            credentials: "include",
                             headers: {
                                 "Content-Type": "application/json",
                             },
@@ -131,7 +132,7 @@ export default {
                 secondText: "No",
                 mainClick: () => {
                     this.dialog.loading = true;
-                    fetch(`/api/user/${username}`, { method: "delete" })
+                    fetch(`/api/user/${username}`, { method: "delete", credentials: "include" })
                         .then(response => {
                             if (!response.ok) throw response;
                             return response;

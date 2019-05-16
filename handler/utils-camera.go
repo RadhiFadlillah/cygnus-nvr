@@ -9,9 +9,10 @@ import (
 	"net/http"
 	nurl "net/url"
 	"path"
-	"strconv"
 	"strings"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -51,16 +52,17 @@ func (h *WebHandler) loginToCamera(cam Camera) (string, error) {
 	loginRequest := LoginRequest{
 		Username: cam.Username,
 		Password: cam.Password,
-		Remember: -1,
+		Remember: 6,
 	}
 
+	// Encode request to JSON
 	buffer := bytes.NewBuffer(nil)
 	err = json.NewEncoder(buffer).Encode(&loginRequest)
 	if err != nil {
 		return "", fmt.Errorf("failed to create login request: %v", err)
 	}
 
-	// Send request
+	// Create HTTP request, then send it
 	req, err := http.NewRequest("POST", reqURL.String(), buffer)
 	if err != nil {
 		return "", fmt.Errorf("failed to create login request: %v", err)
@@ -73,6 +75,7 @@ func (h *WebHandler) loginToCamera(cam Camera) (string, error) {
 	}
 	defer resp.Body.Close()
 
+	// Parse response
 	btSessionID, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse camera login response: %v", err)
@@ -80,7 +83,10 @@ func (h *WebHandler) loginToCamera(cam Camera) (string, error) {
 
 	// Save camera session id to cache
 	sessionID := string(btSessionID)
-	h.CameraCache.Set(cam.ID, sessionID, -1)
+	h.CameraCache.Set(cam.ID, sessionID, 6*time.Hour)
+
+	// Add log
+	logrus.Infoln("log in into camera", cam.ID)
 
 	return sessionID, nil
 }
@@ -88,7 +94,7 @@ func (h *WebHandler) loginToCamera(cam Camera) (string, error) {
 func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) error {
 	var err error
 
-	// Check if camera's session id already cached
+	// Fetch session ID for camera from the cache
 	sessionID, exist := h.CameraCache.Get(cam.ID)
 	if !exist {
 		sessionID, err = h.loginToCamera(cam)
@@ -107,7 +113,7 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 	}
 	reqURL.Path = "/live/playlist"
 
-	// Send request to camera
+	// Create HTTP request for getting playlist
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
@@ -118,31 +124,17 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 		Value: strSessionID,
 	})
 
+	// Send request to camera. If it somehow failed, assume the camera is disconnected
+	// and delete session id for this camera.
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		errMsg, err2 := ioutil.ReadAll(resp.Body)
-		if err2 != nil {
-			return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
-		}
-
-		strErrMsg := strings.TrimSpace(string(errMsg))
-		if strErrMsg == "session is not exist" || strErrMsg == "session has been expired" {
-			h.CameraCache.Delete(cam.ID)
-		}
-
-		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, strErrMsg)
+		h.CameraCache.Delete(cam.ID)
+		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
 	}
-
-	// Copy response header
-	for key, vals := range resp.Header {
-		for _, val := range vals {
-			w.Header().Set(key, val)
-		}
-	}
+	defer resp.Body.Close()
 
 	// Read playlist content and replace HLS URL
 	playlistContent, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	if err != nil {
 		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
 	}
@@ -151,10 +143,12 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 	strPlaylistContent := string(playlistContent)
 	strPlaylistContent = strings.ReplaceAll(strPlaylistContent, "/live/stream", newURL)
 
-	finalLength := len(strPlaylistContent)
-	w.Header().Set("Content-Length", strconv.Itoa(finalLength))
+	// Set response header
+	w.Header().Set("Content-Type", "application/x-mpegURL")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
+	// Send the new playlist to writer
 	_, err = w.Write([]byte(strPlaylistContent))
 	if err != nil {
 		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
@@ -164,11 +158,13 @@ func (h *WebHandler) proxyCameraLivePlaylist(cam Camera, w http.ResponseWriter) 
 }
 
 func (h *WebHandler) proxyCameraLiveStream(cam Camera, index string, w http.ResponseWriter) error {
-	// Check if camera's session id already cached
+	// Fetch session ID for camera from the cache
 	sessionID, exist := h.CameraCache.Get(cam.ID)
 	if !exist {
 		return fmt.Errorf("failed to connect to camera %s: session is expired", cam.ID)
 	}
+
+	// Since our cache save data as interface, assert it as string
 	strSessionID := sessionID.(string)
 
 	// Create URL
@@ -178,7 +174,7 @@ func (h *WebHandler) proxyCameraLiveStream(cam Camera, index string, w http.Resp
 	}
 	reqURL.Path = path.Join("live", "stream", index)
 
-	// Send request to camera
+	// Create HTTP request for getting live stream
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
@@ -189,34 +185,22 @@ func (h *WebHandler) proxyCameraLiveStream(cam Camera, index string, w http.Resp
 		Value: strSessionID,
 	})
 
+	// Send request to camera. If it somehow failed, assume the camera is disconnected
+	// and delete session id for this camera.
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		errMsg, err2 := ioutil.ReadAll(resp.Body)
-		if err2 != nil {
-			return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
-		}
-
-		strErrMsg := strings.TrimSpace(string(errMsg))
-		if strErrMsg == "session is not exist" || strErrMsg == "session has been expired" {
-			h.CameraCache.Delete(cam.ID)
-		}
-
-		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, strErrMsg)
+		h.CameraCache.Delete(cam.ID)
+		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
 	}
+	defer resp.Body.Close()
 
-	// Copy all response headers
-	for key, vals := range resp.Header {
-		for _, val := range vals {
-			w.Header().Set(key, val)
-		}
-	}
-
-	// Make sure to not cahce this stream
+	// Set response header
+	w.Header().Set("Content-Type", "video/MP2T")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	// Copy result to writer
 	_, err = io.Copy(w, resp.Body)
-	resp.Body.Close()
 	if err != nil {
 		return fmt.Errorf("failed to connect to camera %s: %v", cam.ID, err)
 	}

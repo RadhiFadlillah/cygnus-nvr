@@ -61,10 +61,6 @@
                     icon: "fa-video",
                     page: "page-live",
                 },{
-                    title: "Storage",
-                    icon: "fa-hdd",
-                    page: "",
-                },{
                     title: "Setting",
                     icon: "fa-cog",
                     page: "page-setting",
@@ -79,7 +75,7 @@
                         secondText: "No",
                         mainClick: () => {
                             this.dialog.loading = true;
-                            fetch("/api/logout", { method: "post" })
+                            fetch("/api/logout", { method: "post", credentials: "include" })
                                 .then(response => {
                                     if (!response.ok) throw response;
                                     return response;

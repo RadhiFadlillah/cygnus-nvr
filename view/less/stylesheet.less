@@ -315,10 +315,29 @@ body {
         overflow-y: auto;
         overflow-x: hidden;
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: start;
         align-content: start;
         grid-gap: 16px;
+
+        @media screen and (max-width : 600px) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        @media screen and (min-width : 601px) and (max-width : 800px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media screen and (min-width : 801px) and (max-width : 1200px) {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        @media screen and (min-width : 1201px) and (max-width : 1600px) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        @media screen and (min-width : 1601px) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
 
         &::after {
             display: block;

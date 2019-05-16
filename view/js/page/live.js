@@ -5,7 +5,7 @@ var template = `
         <a href="#" title="Refresh storage" @click="loadCameras">
             <i class="fas fa-fw fa-sync-alt"></i>
         </a>
-        <a href="#" title="Add camera" @click="showDialogInputCamera">
+        <a href="#" title="Add camera" @click="showDialogInputCamera()">
             <i class="fas fa-fw fa-plus-circle"></i>
         </a>
     </div>
@@ -35,7 +35,7 @@ export default {
     },
     data() {
         return {
-            cameras: [],
+            cameras: {},
             loading: false,
         }
     },
@@ -43,7 +43,7 @@ export default {
         loadCameras() {
             this.loading = true;
 
-            fetch("/api/camera")
+            fetch("/api/camera", { credentials: "include" })
                 .then(response => {
                     if (!response.ok) throw response;
                     return response.json();
@@ -120,6 +120,7 @@ export default {
                     fetch("/api/camera", {
                             method: "post",
                             body: JSON.stringify(data),
+                            credentials: "include",
                             headers: {
                                 "Content-Type": "application/json",
                             },
@@ -128,9 +129,12 @@ export default {
                             if (!response.ok) throw response;
                             return response;
                         })
-                        .then(() => {
+                        .then(body => {
                             this.dialog.loading = false;
                             this.dialog.visible = false;
+                            body.text().then(id => {
+                                Vue.set(this.cameras, id, data.name);
+                            })
                         })
                         .catch(err => {
                             this.dialog.loading = false;
@@ -149,7 +153,7 @@ export default {
                 secondText: "No",
                 mainClick: () => {
                     this.dialog.loading = true;
-                    fetch(`/api/camera/${id}`, { method: "delete" })
+                    fetch(`/api/camera/${id}`, { method: "delete", credentials: "include" })
                         .then(response => {
                             if (!response.ok) throw response;
                             return response;

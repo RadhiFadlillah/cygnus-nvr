@@ -69,6 +69,7 @@
                     this.loading = true;
                     fetch("/api/login", {
                             method: "post",
+                            credentials: "include",
                             body: JSON.stringify({
                                 username: this.username,
                                 password: this.password,
@@ -80,7 +81,7 @@
                         })
                         .then(response => {
                             if (!response.ok) throw response;
-                            return response.text();
+                            return response;
                         })
                         .then(() => {
                             location.href = "/";
